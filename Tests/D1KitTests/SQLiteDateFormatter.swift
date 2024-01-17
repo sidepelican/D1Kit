@@ -1,7 +1,7 @@
 import Foundation
 
 extension DateFormatter {
-    @ThreadLocal static var sqlite: DateFormatter = {
+    @ThreadLocal static var sqliteTimestamp: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd HH:mm:ss"
         f.timeZone = .init(secondsFromGMT: 0)

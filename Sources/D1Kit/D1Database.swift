@@ -11,6 +11,8 @@ public struct D1Database: Sendable {
 
     public var client: D1Client
     public var databaseID: String
+    public var encodingOptions: D1ParameterEncodingOptions = .init()
+    public var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .secondsSince1970
 
     private func databaseURL() -> URL {
         return URL(string: "https://api.cloudflare.com/client/v4/accounts/\(client.accountID)/d1/database/\(databaseID)")!
@@ -37,7 +39,7 @@ public struct D1Database: Sendable {
         binds: [any D1ParameterBindable],
         as rowType: D.Type
     ) async throws -> [D] {
-        let params = binds.map { $0.encodeToD1Parameter()  }
+        let params = binds.map { $0.encodeToD1Parameter(options: encodingOptions)  }
         return try await _query(query, params: params, as: rowType)
     }
 
@@ -45,7 +47,11 @@ public struct D1Database: Sendable {
         _ query: QueryString,
         as rowType: D.Type
     ) async throws -> [D] {
-        return try await _query(query.query, params: query.params, as: rowType)
+        return try await _query(
+            query.query,
+            params: query.params.map({ $0.encodeToD1Parameter(options: encodingOptions) }),
+            as: rowType
+        )
     }
 
     private struct Empty: Decodable {}
@@ -55,12 +61,16 @@ public struct D1Database: Sendable {
         binds: repeat each B
     ) async throws {
         var params: [String] = []
-        repeat params.append((each binds).encodeToD1Parameter())
+        repeat params.append((each binds).encodeToD1Parameter(options: encodingOptions))
         _ = try await _query(query, params: params, as: Empty.self)
     }
 
     public func query(_ query: QueryString) async throws {
-        _ = try await _query(query.query, params: query.params, as: Empty.self)
+        _ = try await _query(
+            query.query,
+            params: query.params.map({ $0.encodeToD1Parameter(options: encodingOptions) }),
+            as: Empty.self
+        )
     }
 
     private func _query<D: Decodable>(
@@ -83,14 +93,7 @@ public struct D1Database: Sendable {
 //        print(String(data: body, encoding: .utf8) ?? "<empty>")
 
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .custom { decoder in
-            let c = try decoder.singleValueContainer()
-            let string = try c.decode(String.self)
-            guard let date = DateFormatter.sqlite.date(from: string) else {
-                throw DecodingError.dataCorruptedError(in: c, debugDescription: "\(string) is bad format.")
-            }
-            return date
-        }
+        decoder.dateDecodingStrategy = dateDecodingStrategy
         let responseBody = try decoder.decode(QueryResponse<D>.self, from: body)
         switch response.status {
         case .ok:

@@ -28,7 +28,7 @@ final class D1KitTests: XCTestCase {
         SELECT
             1 as "intValue"
             , 'Hello, world!' as "textValue"
-            , CURRENT_TIMESTAMP as "dateValue"
+            , unixepoch(CURRENT_TIMESTAMP) as "dateValue"
         """, as: Row.self).first
         if let test {
             XCTAssertEqual(test.intValue, 1)
@@ -51,7 +51,7 @@ final class D1KitTests: XCTestCase {
         SELECT
             cast(? as integer) as "intValue"
             , ? as "textValue"
-            , ? as "dateValue"
+            , cast(? as integer) as "dateValue"
         """,
         binds: [String(42), "swift", now], as: Row.self).first
 
@@ -81,7 +81,7 @@ final class D1KitTests: XCTestCase {
             , \(literal: 42) as "intValue"
             , \(literal: 42.195) as "doubleValue"
             , \(bind: "swift") as "textValue"
-            , \(bind: now) as "dateValue"
+            , cast(\(bind: now) as integer) as "dateValue"
         FROM
             cte
         WHERE
@@ -103,5 +103,76 @@ final class D1KitTests: XCTestCase {
         try await db.query("""
         PRAGMA quick_check(0)
         """)
+    }
+
+    func testFormatCheck() async throws {
+        struct Row: Decodable {
+            var bindedValueType: String
+            var timestamp: String
+            var unixepoch: Double
+        }
+        let test = try await db.query("""
+        SELECT
+            typeof(\(bind: "swift")) as "bindedValueType"
+            , CURRENT_TIMESTAMP as timestamp
+            , unixepoch(CURRENT_TIMESTAMP) as unixepoch
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.bindedValueType, "text")
+            XCTAssertNotNil(DateFormatter.sqliteTimestamp.date(from: test.timestamp))
+            XCTAssertEqual(test.unixepoch.remainder(dividingBy: 1), 0.0, accuracy: 0.0)
+        } else {
+            XCTFail()
+        }
+    }
+
+    func testDateCodingStrategy() async throws {
+        struct Row: Decodable {
+            var now: Date
+        }
+
+        let now = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970))
+
+        var db = db!
+        
+        db.encodingOptions.dateEncodingStrategy = .secondsSince1970
+        db.dateDecodingStrategy = .secondsSince1970
+        var test = try await db.query("""
+        SELECT
+            cast(\(bind: now) as integer) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
+
+        db.encodingOptions.dateEncodingStrategy = .millisecondsSince1970
+        db.dateDecodingStrategy = .millisecondsSince1970
+        test = try await db.query("""
+        SELECT
+            cast(\(bind: now) as integer) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
+
+        db.encodingOptions.dateEncodingStrategy = .iso8601
+        db.dateDecodingStrategy = .iso8601
+        test = try await db.query("""
+        SELECT
+            \(bind: now) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
     }
 }
