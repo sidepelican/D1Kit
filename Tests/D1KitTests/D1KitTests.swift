@@ -1,5 +1,5 @@
 import Foundation
-@testable import D1Kit
+import D1Kit
 import D1KitFoundation
 import XCTest
 
@@ -28,7 +28,7 @@ final class D1KitTests: XCTestCase {
         SELECT
             1 as "intValue"
             , 'Hello, world!' as "textValue"
-            , CURRENT_TIMESTAMP as "dateValue"
+            , unixepoch(CURRENT_TIMESTAMP) as "dateValue"
         """, as: Row.self).first
         if let test {
             XCTAssertEqual(test.intValue, 1)
@@ -51,7 +51,7 @@ final class D1KitTests: XCTestCase {
         SELECT
             cast(? as integer) as "intValue"
             , ? as "textValue"
-            , ? as "dateValue"
+            , cast(? as integer) as "dateValue"
         """,
         binds: [String(42), "swift", now], as: Row.self).first
 
@@ -81,7 +81,7 @@ final class D1KitTests: XCTestCase {
             , \(literal: 42) as "intValue"
             , \(literal: 42.195) as "doubleValue"
             , \(bind: "swift") as "textValue"
-            , \(bind: now) as "dateValue"
+            , cast(\(bind: now) as integer) as "dateValue"
         FROM
             cte
         WHERE

@@ -12,7 +12,7 @@ public struct D1Database: Sendable {
     public var client: D1Client
     public var databaseID: String
     public var encodingOptions: D1ParameterEncodingOptions = .init()
-    public var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .deferredToDate
+    public var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .secondsSince1970
 
     private func databaseURL() -> URL {
         return URL(string: "https://api.cloudflare.com/client/v4/accounts/\(client.accountID)/d1/database/\(databaseID)")!
