@@ -37,7 +37,8 @@ public struct D1Database: Sendable {
         binds: [any D1ParameterBindable],
         as rowType: D.Type
     ) async throws -> [D] {
-        let params = binds.map { $0.encodeToD1Parameter()  }
+        let options = D1ParameterEncodingOptions()
+        let params = binds.map { $0.encodeToD1Parameter(options: options)  }
         return try await _query(query, params: params, as: rowType)
     }
 
@@ -45,7 +46,12 @@ public struct D1Database: Sendable {
         _ query: QueryString,
         as rowType: D.Type
     ) async throws -> [D] {
-        return try await _query(query.query, params: query.params, as: rowType)
+        let options = D1ParameterEncodingOptions()
+        return try await _query(
+            query.query,
+            params: query.params.map({ $0.encodeToD1Parameter(options: options) }),
+            as: rowType
+        )
     }
 
     private struct Empty: Decodable {}
@@ -54,13 +60,19 @@ public struct D1Database: Sendable {
         raw query: String,
         binds: repeat each B
     ) async throws {
+        let options = D1ParameterEncodingOptions()
         var params: [String] = []
-        repeat params.append((each binds).encodeToD1Parameter())
+        repeat params.append((each binds).encodeToD1Parameter(options: options))
         _ = try await _query(query, params: params, as: Empty.self)
     }
 
     public func query(_ query: QueryString) async throws {
-        _ = try await _query(query.query, params: query.params, as: Empty.self)
+        let options = D1ParameterEncodingOptions()
+        _ = try await _query(
+            query.query,
+            params: query.params.map({ $0.encodeToD1Parameter(options: options) }),
+            as: Empty.self
+        )
     }
 
     private func _query<D: Decodable>(
@@ -86,7 +98,7 @@ public struct D1Database: Sendable {
         decoder.dateDecodingStrategy = .custom { decoder in
             let c = try decoder.singleValueContainer()
             let string = try c.decode(String.self)
-            guard let date = DateFormatter.sqlite.date(from: string) else {
+            guard let date = DateFormatter.sqliteTimestamp.date(from: string) else {
                 throw DecodingError.dataCorruptedError(in: c, debugDescription: "\(string) is bad format.")
             }
             return date

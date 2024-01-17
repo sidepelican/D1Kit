@@ -1,5 +1,5 @@
 import Foundation
-import D1Kit
+@testable import D1Kit
 import D1KitFoundation
 import XCTest
 
@@ -103,5 +103,27 @@ final class D1KitTests: XCTestCase {
         try await db.query("""
         PRAGMA quick_check(0)
         """)
+    }
+
+    func testFormatCheck() async throws {
+        struct Row: Decodable {
+            var bindedValueType: String
+            var timestamp: String
+            var unixepoch: Double
+        }
+        let test = try await db.query("""
+        SELECT
+            typeof(\(bind: "swift")) as "bindedValueType"
+            , CURRENT_TIMESTAMP as timestamp
+            , unixepoch(CURRENT_TIMESTAMP) as unixepoch
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.bindedValueType, "text")
+            XCTAssertNotNil(DateFormatter.sqliteTimestamp.date(from: test.timestamp))
+            XCTAssertEqual(test.unixepoch.remainder(dividingBy: 1), 0.0, accuracy: 0.0)
+        } else {
+            XCTFail()
+        }
     }
 }

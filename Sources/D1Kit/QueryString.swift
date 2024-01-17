@@ -4,7 +4,7 @@ public struct QueryString {
     @usableFromInline
     var query: String
     @usableFromInline
-    var params: [String] = []
+    var params: [any D1ParameterBindable] = []
 
     @inlinable
     public init(_ string: some StringProtocol) {
@@ -55,17 +55,17 @@ extension QueryString: StringInterpolationProtocol {
     }
 
     @inlinable
-    public mutating func appendInterpolation(bind value: some D1ParameterBindable) {
+    public mutating func appendInterpolation(bind value: any D1ParameterBindable) {
         self.query.append("?")
-        self.params.append(value.encodeToD1Parameter())
+        self.params.append(value)
     }
 
     @inlinable
-    public mutating func appendInterpolation(binds values: [some D1ParameterBindable]) {
+    public mutating func appendInterpolation(binds values: [any D1ParameterBindable]) {
         self.query.append("(")
         self.query.append([String](repeating: "?", count: values.count).joined(separator: ","))
         self.query.append(")")
-        self.params.append(contentsOf: values.map { $0.encodeToD1Parameter() })
+        self.params.append(contentsOf: values)
     }
 
     @inlinable
