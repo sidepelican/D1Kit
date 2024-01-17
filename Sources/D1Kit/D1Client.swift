@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 
 public struct D1Client: Sendable {
-    public init(httpClient: HTTPClientProtocol, accountID: String, apiToken: String) {
+    public init(httpClient: any HTTPClientProtocol, accountID: String, apiToken: String) {
         precondition(accountID.isASCII)
         precondition(apiToken.isASCII)
         self.httpClient = httpClient

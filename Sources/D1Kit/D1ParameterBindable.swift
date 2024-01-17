@@ -28,7 +28,7 @@ extension Date: D1ParameterBindable {
         case .formatted(let formatter):
             return formatter.string(from: self)
         case .custom(let custom):
-            return custom(self)
+            return custom(self, options)
         }
     }
 }

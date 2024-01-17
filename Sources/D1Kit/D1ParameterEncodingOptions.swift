@@ -1,7 +1,7 @@
 import Foundation
 
 public protocol D1ParameterEncodingOptionKey {
-    associatedtype Value
+    associatedtype Value: Sendable
     static var defaultValue: Self.Value { get }
 }
 
@@ -30,7 +30,7 @@ public enum D1DateEncodingStrategy {
     case millisecondsSince1970
     case iso8601
     case formatted(DateFormatter)
-    @preconcurrency case custom(@Sendable (Date) -> String)
+    @preconcurrency case custom(@Sendable (Date, D1ParameterEncodingOptions) -> String)
 }
 
 public struct D1DateEncodingStrategyKey: D1ParameterEncodingOptionKey {
