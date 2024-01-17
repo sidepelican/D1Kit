@@ -5,8 +5,8 @@ public protocol D1ParameterEncodingOptionKey {
     static var defaultValue: Self.Value { get }
 }
 
-public struct D1ParameterEncodingOptions {
-    var storage: [ObjectIdentifier: any Sendable] = [:]
+public struct D1ParameterEncodingOptions: Sendable {
+    private var storage: [ObjectIdentifier: any Sendable] = [:]
 
     public init() {}
 

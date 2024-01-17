@@ -126,4 +126,53 @@ final class D1KitTests: XCTestCase {
             XCTFail()
         }
     }
+
+    func testDateCodingStrategy() async throws {
+        struct Row: Decodable {
+            var now: Date
+        }
+
+        let now = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970))
+
+        var db = db!
+        
+        db.encodingOptions.dateEncodingStrategy = .secondsSince1970
+        db.dateDecodingStrategy = .secondsSince1970
+        var test = try await db.query("""
+        SELECT
+            cast(\(bind: now) as integer) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
+
+        db.encodingOptions.dateEncodingStrategy = .millisecondsSince1970
+        db.dateDecodingStrategy = .millisecondsSince1970
+        test = try await db.query("""
+        SELECT
+            cast(\(bind: now) as integer) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
+
+        db.encodingOptions.dateEncodingStrategy = .iso8601
+        db.dateDecodingStrategy = .iso8601
+        test = try await db.query("""
+        SELECT
+            \(bind: now) as now
+        """, as: Row.self).first
+
+        if let test {
+            XCTAssertEqual(test.now, now)
+        } else {
+            XCTFail()
+        }
+    }
 }
