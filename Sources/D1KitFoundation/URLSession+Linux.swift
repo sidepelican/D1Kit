@@ -1,7 +1,9 @@
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
+#endif
 
+#if compiler(<6)
 extension URLSession {
   func data(for request: URLRequest) async throws -> (Data, URLResponse) {
     return try await withCheckedThrowingContinuation { continuation in
