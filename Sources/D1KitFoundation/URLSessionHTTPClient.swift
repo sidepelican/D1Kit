@@ -6,22 +6,13 @@ import FoundationNetworking
 import HTTPTypes
 import HTTPTypesFoundation
 
-private enum HTTPTypeConversionError: Error {
-    case failedToConvertHTTPRequestToURLRequest
-    case failedToConvertURLResponseToHTTPResponse
-}
-
 extension URLSession: HTTPClientProtocol {
     public func execute(_ request: HTTPRequest, body: Data?) async throws -> (Data, HTTPResponse) {
-        guard var urlRequest = URLRequest(httpRequest: request) else {
-            throw HTTPTypeConversionError.failedToConvertHTTPRequestToURLRequest
+        if let body {
+          try await self.upload(for: request, from: body)
+        } else {
+          try await self.data(for: request)
         }
-        urlRequest.httpBody = body
-        let (data, urlResponse) = try await self.data(for: urlRequest)
-        guard let response = (urlResponse as? HTTPURLResponse)?.httpResponse else {
-            throw HTTPTypeConversionError.failedToConvertURLResponseToHTTPResponse
-        }
-        return (data, response)
     }
 }
 

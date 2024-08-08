@@ -9,7 +9,7 @@ let package = Package(
         .library(name: "D1Kit", targets: ["D1Kit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.3.0"),
     ],
     targets: [
         .target(
