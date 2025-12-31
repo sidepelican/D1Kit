@@ -1,4 +1,8 @@
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 
 public protocol D1ParameterEncodingOptionKey {
     associatedtype Value: Sendable
@@ -25,11 +29,13 @@ public struct D1ParameterEncodingOptions: Sendable {
     }
 }
 
-public enum D1DateEncodingStrategy {
+public enum D1DateEncodingStrategy : Sendable {
     case secondsSince1970
     case millisecondsSince1970
     case iso8601
+#if !canImport(FoundationEssentials)
     case formatted(DateFormatter)
+#endif
     @preconcurrency case custom(@Sendable (Date, D1ParameterEncodingOptions) -> String)
 }
 

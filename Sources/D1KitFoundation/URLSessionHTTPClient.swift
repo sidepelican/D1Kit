@@ -17,7 +17,11 @@ extension URLSession: HTTPClientProtocol {
 }
 
 extension HTTPClientProtocol where Self == URLSession {
-    public static func urlSession(_ urlSession: Self) -> Self {
+    public static func urlSession(_ urlSession: URLSession) -> URLSession {
         return urlSession
+    }
+
+    public static var urlSession: URLSession {
+        .shared
     }
 }

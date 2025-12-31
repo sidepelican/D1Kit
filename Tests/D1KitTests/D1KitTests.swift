@@ -1,70 +1,66 @@
 import Foundation
 import D1Kit
 import D1KitFoundation
-import XCTest
+import Testing
 
-final class D1KitTests: XCTestCase {
-    var db: D1Database!
+@Suite struct D1KitTests {
+    var db: D1Database
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         let env = ProcessInfo.processInfo.environment
         let client = D1Client(
-            httpClient: .urlSession(.shared),
+            httpClient: .urlSession,
             accountID: env["ACCOUNT_ID"]!,
             apiToken: env["API_TOKEN"]!
         )
         db = D1Database(client: client, databaseID: env["DATABASE_ID"]!)
     }
 
-    func testDecode() async throws {
+    @Test func decode() async throws {
         struct Row: Decodable {
             var intValue: Int
             var textValue: String
             var dateValue: Date
         }
-        let test = try await db.query("""
+        let rows = try await db.query("""
         SELECT
             1 as "intValue"
             , 'Hello, world!' as "textValue"
             , unixepoch(CURRENT_TIMESTAMP) as "dateValue"
-        """, as: Row.self).first
-        if let test {
-            XCTAssertEqual(test.intValue, 1)
-            XCTAssertEqual(test.textValue, "Hello, world!")
-            XCTAssertEqual(test.dateValue.timeIntervalSince1970, Date().timeIntervalSince1970, accuracy: 1.0)
-        } else {
-            XCTFail()
-        }
+        """, as: Row.self)
+
+        let test = try #require(rows.first)
+        #expect(test.intValue == 1)
+        #expect(test.textValue == "Hello, world!")
+        #expect(abs(test.dateValue.timeIntervalSince1970 - Date().timeIntervalSince1970) < 1.0)
     }
 
-    func testRawBinds() async throws {
+    @Test func rawBinds() async throws {
         struct Row: Decodable {
             var intValue: Int
             var textValue: String
             var dateValue: Date
         }
         let now = Date()
-        let test = try await db.query(raw:
-        """
-        SELECT
-            cast(? as integer) as "intValue"
-            , ? as "textValue"
-            , cast(? as integer) as "dateValue"
-        """,
-        binds: [String(42), "swift", now], as: Row.self).first
+        let rows = try await db.query(
+            raw:
+            """
+            SELECT
+                cast(? as integer) as "intValue"
+                , ? as "textValue"
+                , cast(? as integer) as "dateValue"
+            """,
+            binds: [String(42), "swift", now],
+            as: Row.self
+        )
+        let test = try #require(rows.first)
 
-        if let test {
-            XCTAssertEqual(test.intValue, 42)
-            XCTAssertEqual(test.textValue, "swift")
-            XCTAssertEqual(test.dateValue.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 1.0)
-        } else {
-            XCTFail()
-        }
+        #expect(test.intValue == 42)
+        #expect(test.textValue == "swift")
+        #expect(abs(test.dateValue.timeIntervalSince1970 - now.timeIntervalSince1970) < 1.0)
     }
 
-    func testQueryStringBinds() async throws {
+    @Test func queryStringBinds() async throws {
         struct Row: Decodable {
             var letter: String
             var intValue: Int
@@ -73,7 +69,7 @@ final class D1KitTests: XCTestCase {
             var dateValue: Date
         }
         let now = Date()
-        let test = try await db.query("""
+        let rows = try await db.query("""
         WITH cte(letter) AS
             (VALUES ('a'),('i'),('u'))
         SELECT
@@ -87,66 +83,60 @@ final class D1KitTests: XCTestCase {
         WHERE
             letter IN \(binds: ["a", "i"])
         """, as: Row.self)
-        if test.count == 2 {
-            XCTAssertEqual(test[0].letter, "a")
-            XCTAssertEqual(test[1].letter, "i")
-            XCTAssertEqual(test[0].intValue, 42)
-            XCTAssertEqual(test[0].doubleValue, 42.195)
-            XCTAssertEqual(test[0].textValue, "swift")
-            XCTAssertEqual(test[0].dateValue.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 1.0)
-        } else {
-            XCTFail()
-        }
+        try #require(rows.count == 2)
+        #expect(rows[0].letter == "a")
+        #expect(rows[1].letter == "i")
+        #expect(rows[0].intValue == 42)
+        #expect(rows[0].doubleValue == 42.195)
+        #expect(rows[0].textValue == "swift")
+        #expect(abs(rows[0].dateValue.timeIntervalSince1970 - now.timeIntervalSince1970) < 1.0)
     }
 
-    func testEmptyResult() async throws {
+    @Test func emptyResult() async throws {
         try await db.query("""
         PRAGMA quick_check(0)
         """)
     }
 
-    func testFormatCheck() async throws {
+    @Test func formatCheck() async throws {
         struct Row: Decodable {
             var bindedValueType: String
             var timestamp: String
             var unixepoch: Double
         }
-        let test = try await db.query("""
+        let rows = try await db.query("""
         SELECT
             typeof(\(bind: "swift")) as "bindedValueType"
             , CURRENT_TIMESTAMP as timestamp
             , unixepoch(CURRENT_TIMESTAMP) as unixepoch
-        """, as: Row.self).first
+        """, as: Row.self)
 
-        if let test {
-            XCTAssertEqual(test.bindedValueType, "text")
-            XCTAssertNotNil(DateFormatter.sqliteTimestamp.date(from: test.timestamp))
-            XCTAssertEqual(test.unixepoch.remainder(dividingBy: 1), 0.0, accuracy: 0.0)
-        } else {
-            XCTFail()
-        }
+        let test = try #require(rows.first)
+        #expect(test.bindedValueType == "text")
+        #expect((try? Date(test.timestamp, strategy: .sqliteTimestamp)) != nil)
+        #expect(test.unixepoch.remainder(dividingBy: 1) == 0.0)
     }
 
-    func testDateCodingStrategy() async throws {
+    @Test func dateCodingStrategy() async throws {
         struct Row: Decodable {
             var now: Date
         }
 
         let now = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970))
 
-        var db = db!
-        
+        var db = db
         db.encodingOptions.dateEncodingStrategy = .secondsSince1970
         db.dateDecodingStrategy = .secondsSince1970
+
         var test = try await db.query("""
         SELECT
             cast(\(bind: now) as integer) as now
         """, as: Row.self).first
 
         if let test {
-            XCTAssertEqual(test.now, now)
+            #expect(test.now == now)
         } else {
-            XCTFail()
+            Issue.record()
         }
 
         db.encodingOptions.dateEncodingStrategy = .millisecondsSince1970
@@ -157,9 +147,9 @@ final class D1KitTests: XCTestCase {
         """, as: Row.self).first
 
         if let test {
-            XCTAssertEqual(test.now, now)
+            #expect(test.now == now)
         } else {
-            XCTFail()
+            Issue.record()
         }
 
         db.encodingOptions.dateEncodingStrategy = .iso8601
@@ -170,9 +160,9 @@ final class D1KitTests: XCTestCase {
         """, as: Row.self).first
 
         if let test {
-            XCTAssertEqual(test.now, now)
+            #expect(test.now == now)
         } else {
-            XCTFail()
+            Issue.record()
         }
     }
 }

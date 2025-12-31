@@ -9,7 +9,7 @@ import D1Kit
 import D1KitFoundation
 
 let client = D1Client(
-    httpClient: .urlSession(.shared),
+    httpClient: .urlSession,
     accountID: "YOUR_ACCOUNT_ID",
     apiToken: "YOUR_API_TOKEN"
 )
