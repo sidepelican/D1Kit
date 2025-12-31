@@ -1,6 +1,9 @@
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
 import Foundation
+#endif
 import HTTPTypes
-import HTTPTypesFoundation
 
 public struct D1Database: Sendable {
     public init(client: D1Client, databaseID: String) {

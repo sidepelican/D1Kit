@@ -1,10 +1,10 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 
 import PackageDescription
 
 let package = Package(
     name: "D1Kit",
-    platforms: [.macOS(.v13), .iOS(.v13)],
+    platforms: [.macOS(.v13), .iOS(.v15)],
     products: [
         .library(name: "D1Kit", targets: ["D1Kit"]),
     ],
@@ -16,7 +16,6 @@ let package = Package(
             name: "D1Kit",
             dependencies: [
                 .product(name: "HTTPTypes", package: "swift-http-types"),
-                .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
             ]
         ),
         .target(

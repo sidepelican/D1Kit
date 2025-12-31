@@ -120,7 +120,7 @@ final class D1KitTests: XCTestCase {
 
         if let test {
             XCTAssertEqual(test.bindedValueType, "text")
-            XCTAssertNotNil(DateFormatter.sqliteTimestamp.date(from: test.timestamp))
+            XCTAssertNotNil(try? Date(test.timestamp, strategy: .sqliteTimestamp))
             XCTAssertEqual(test.unixepoch.remainder(dividingBy: 1), 0.0, accuracy: 0.0)
         } else {
             XCTFail()
