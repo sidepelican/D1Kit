@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS(.v13), .iOS(.v15)],
     products: [
         .library(name: "D1Kit", targets: ["D1Kit"]),
+        .library(name: "D1KitFoundation", targets: ["D1KitFoundation"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-http-types.git", from: "1.3.0"),
